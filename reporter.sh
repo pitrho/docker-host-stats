@@ -5,10 +5,11 @@ REPORT_CPU=false
 REPORT_MEM=false
 REPORT_DISK=false
 REPORT_NET=false
-REPORT_FREQUENCY=1
+REPORT_FREQUENCY=30
 REPORT_MESSAGE=""
+REPORT_MESSAGE_PREFIX=""
 
-while getopts ":cmdnf:" opt; do
+while getopts ":cmdnf:p:" opt; do
   case $opt in
     c)
       # CPU
@@ -33,6 +34,10 @@ while getopts ":cmdnf:" opt; do
     f)
       # Frequency
       REPORT_FREQUENCY=${OPTARG}
+      ;;
+    p)
+      # Message Prefix
+      REPORT_MESSAGE_PREFIX=${OPTARG}
       ;;
     \?)
       echo "Invalid option -$OPTARG ..."
@@ -63,7 +68,7 @@ while true; do
     let "DIFF_IDLE=$IDLE-$PREV_IDLE"
     let "DIFF_TOTAL=$TOTAL-$PREV_TOTAL"
     let "DIFF_USAGE=(1000*($DIFF_TOTAL-$DIFF_IDLE)/$DIFF_TOTAL+5)/10"
-    CPU_MESSAGE="CPU: $DIFF_USAGE%"
+    CPU_MESSAGE="CPU Usage: $DIFF_USAGE%"
     REPORT_MESSAGE+=$CPU_MESSAGE" "
   fi
 
@@ -83,7 +88,7 @@ while true; do
 
     MEMORY_USED_GB=$(bc -l <<< "scale=4; ($MEMORY_USED/1000000)")
     MEMORY_TOTAL_GB=$(bc -l <<< "scale=4; ($MEMORY_TOTAL/1000000)")
-    MEM_MESSAGE="Memory Used: ${MEMORY_PCT:0:-2}% (${MEMORY_USED_GB:0:-2}GB of ${MEMORY_TOTAL_GB:0:-2}GB)"
+    MEM_MESSAGE="Memory Usage: ${MEMORY_PCT:0:-2}% (${MEMORY_USED_GB:0:-2}GB of ${MEMORY_TOTAL_GB:0:-2}GB)"
     REPORT_MESSAGE+=$MEM_MESSAGE" "
   fi
 
@@ -99,6 +104,7 @@ while true; do
   fi
 
   # Report our message to stdout
+  REPORT_MESSAGE=$REPORT_MESSAGE_PREFIX" "$REPORT_MESSAGE
   echo -e $REPORT_MESSAGE
 
 

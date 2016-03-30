@@ -19,9 +19,13 @@ on what frequency.
 * -d : Disk
 * -n : Network (not yet implemented)
 * -f : Reporting frequency, this requires an integer as the argument
-
+* -p : Optional Prefix to add to reported values
 ## Examples
 
 Report only CPU and Memory every 10 seconds
 
     docker run -v=/proc:/prochost:ro pitrho/docker-host-stats -cm -f 10
+
+Report CPU, Memory, and Disk Utilization with "FooBar" prefix
+
+    docker run -v=/proc:/prochost:ro pitrho/docker-host-stats -cmd -p "FooBar"
