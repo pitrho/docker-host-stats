@@ -20,7 +20,7 @@ done
 rm -rf build
 mkdir build
 
-cp reporter.sh build/
+cp host-stats-logger.py build/
 
 # Copy docker file tmpl to build Dir. Currently not doing anything to the
 # template, just keeping for convention

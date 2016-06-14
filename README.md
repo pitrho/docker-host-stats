@@ -14,12 +14,18 @@ Disk Utilization of `/` every 5 seconds.
 User can optionally pass flags to specify what system stats to report and
 on what frequency.
 
-* -c : CPU
-* -m : Memory
-* -d : Disk
-* -n : Network (not yet implemented)
-* -f : Reporting frequency, this requires an integer as the argument
-* -p : Optional Prefix to add to reported values
+* -c              : CPU Utilization (as percentage)
+* --combinedcpu   : Report CPU as an average across cores instead of per-CPU basis.
+* -m              : Memory Utilization
+* -d              : Disk Utilization
+* --diskpath      : Disk path to report. Defaults to '/'
+* -n              : Network Utilization
+* -f              : Reporting frequency in seconds. Default: 5
+* -p              : Optional Prefix to add to reported values
+* --procpath      : Path to mounted /proc directory. Defaults to /proc_host
+* --asbytes       : Report usage in bytes. Defaults to reporting in GB (excludes Network).
+* --pernic        : Report network usage per NIC. Defaults to False.
+
 ## Examples
 
 Report only CPU and Memory every 10 seconds
@@ -28,4 +34,4 @@ Report only CPU and Memory every 10 seconds
 
 Report CPU, Memory, and Disk Utilization with "FooBar" prefix
 
-    docker run -v=/proc:/prochost:ro pitrho/docker-host-stats -cmd -p "FooBar"
+    docker run -v=/proc:/prochost:ro pitrho/docker-host-stats -cmd -p "FooBar "

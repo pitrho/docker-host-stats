@@ -1,4 +1,4 @@
-# Report Docker *host* utilization statistics
+# Report (log to stdout) host statistics
 #
 
 # Use phusion/baseimage as base image.
@@ -12,14 +12,19 @@ ENV DEBIAN_FRONTEND noninteractive
 # Install build deps
 #
 RUN apt-get update && apt-get -y -q install \
-	bc && \
-	apt-get clean && rm -rf /var/lib/apt/lists/*
+	python \
+    python-dev \
+    python-distribute \
+    python-pip \
+	&& apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy reporter script
-#
-COPY reporter.sh /reporter.sh
+RUN pip install pyCLI==2.0.3 psutil==4.2.0
 
-# Default to reporting CPU, Memory, Disk Space every 5 seconds
+# Copy logger script
 #
-ENTRYPOINT ["/reporter.sh"]
-CMD ["-cmd", "-f", "5"]
+COPY host-stats-logger.py /host-stats-logger.py
+
+# Default to reporting every 30 seconds
+#
+ENTRYPOINT ["python", "/host-stats-logger.py"]
+CMD ["-i", "30"]
