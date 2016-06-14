@@ -18,7 +18,7 @@ on what frequency.
 * --combinedcpu   : Report CPU as an average across cores instead of per-CPU basis.
 * -m              : Memory Utilization
 * -d              : Disk Utilization
-* --diskpath      : Disk path to report. Defaults to '/'
+* --diskpaths     : Specific disk paths to report as comma separated list. Defaults to all mounted partitions.
 * -n              : Network Utilization
 * -f              : Reporting frequency in seconds. Default: 5
 * -p              : Optional Prefix to add to reported values
@@ -32,6 +32,7 @@ Report only CPU and Memory every 10 seconds
 
     docker run -v=/proc:/prochost:ro pitrho/docker-host-stats -cm -f 10
 
-Report CPU, Memory, and Disk Utilization with "FooBar" prefix
+Report CPU, Memory, and Disk Utilization with "FooBar " prefix (add a space
+to the end of your prefix for proper formatting.)
 
     docker run -v=/proc:/prochost:ro pitrho/docker-host-stats -cmd -p "FooBar "

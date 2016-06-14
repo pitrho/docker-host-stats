@@ -35,7 +35,7 @@ def stats_logger(app):
     logging.info("Report Per CPU:      {0}".format(not app.params.combinedcpu))
     logging.info("Report Memory:       {0}".format(app.params.memory))
     logging.info("Report Disk:         {0}".format(app.params.disk))
-    logging.info("Reporting disk path: {0}".format(app.params.diskpath))
+    logging.info("Reporting disk path: {0}".format(app.params.diskpaths))
     logging.info("Report Network:      {0}".format(app.params.network))
     logging.info("Report per NIC:      {0}".format(app.params.pernic))
     logging.info("Log Prefix:          {0}".format(app.params.prefix))
@@ -79,30 +79,48 @@ def stats_logger(app):
         # Add Disk Utilization
         #
         if app.params.disk:
-            log_msg['disk'] = {
-                'total': 0,
-                'available': 0,
-                'percent': 0,
-                'used': 0,
-                'free': 0,
-                'status': "OK"
-            }
+            disk_paths = app.params.diskpaths
+            mounts = []  # Mount points to report upon
 
-            # We are not reporting any platform specific fields, such as
-            # buffers / cahced / shared on Linux/BSD
-            try:
-                disk = psutil.disk_usage(app.params.diskpath)
+            def disk_usage_dict(mount):
+                """ Return a dict for reported usage on a particular mount.
+                """
+                disk_usage = {}
 
-                log_msg['disk']['total'] =\
-                    disk.total if asbytes else to_gb(disk.total)
-                log_msg['disk']['percent'] = disk.percent
-                log_msg['disk']['used'] =\
-                    disk.used if asbytes else to_gb(disk.used)
-                log_msg['disk']['free'] =\
-                    disk.free if asbytes else to_gb(disk.free)
-            except OSError:
-                log_msg['disk']['status'] =\
-                    "Provided `diskpath` does not exist ..."
+                # We are not reporting any platform specific fields, such as
+                # buffers / cahced / shared on Linux/BSD
+                try:
+                    disk = psutil.disk_usage(mount)
+
+                    disk_usage['total'] =\
+                        disk.total if asbytes else to_gb(disk.total)
+                    disk_usage['percent'] = disk.percent
+                    disk_usage['used'] =\
+                        disk.used if asbytes else to_gb(disk.used)
+                    disk_usage['free'] =\
+                        disk.free if asbytes else to_gb(disk.free)
+                    disk_usage['status'] = 'OK'
+
+                except OSError:
+                    disk_usage['status'] =\
+                        "Provided mount path does not exist ..."
+
+                return disk_usage
+
+            # Default disk path is 'all', which means we need to discover
+            # all disk partitions first.
+            if disk_paths == 'all':
+                partitions = psutil.disk_partitions()  # Currently all=False
+                for partition in partitions:
+                    mounts.append(partition.mountpoint)
+            else:
+                paths = disk_paths.split(',')
+                for path in paths:
+                    mounts.append(path.strip())
+
+            log_msg['disk'] = {}
+            for mount in mounts:
+                log_msg['disk'][mount] = disk_usage_dict(mount)
 
         # Add Network Utilization
         #
@@ -176,9 +194,9 @@ stats_logger.add_param(
     default=False
 )
 stats_logger.add_param(
-    "--diskpath",
-    help="Disk path to report. Defaults to '/'",
-    default='/',
+    "--diskpaths",
+    help="Disk paths to report as comma separated list. Defaults to all mounted partitions",
+    default='all',
     type=str
 )
 stats_logger.add_param(
