@@ -110,7 +110,7 @@ def stats_logger(app):
             # Default disk path is 'all', which means we need to discover
             # all disk partitions first.
             if disk_paths == 'all':
-                partitions = psutil.disk_partitions()  # Currently all=False
+                partitions = psutil.disk_partitions(all=False)  # Only physical
                 for partition in partitions:
                     mounts.append(partition.mountpoint)
             else:
