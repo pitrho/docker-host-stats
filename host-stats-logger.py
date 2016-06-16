@@ -38,7 +38,7 @@ def stats_logger(app):
     logging.info("Reporting disk path: {0}".format(app.params.diskpaths))
     logging.info("Report Network:      {0}".format(app.params.network))
     logging.info("Report per NIC:      {0}".format(app.params.pernic))
-    logging.info("Log Prefix:          {0}".format(app.params.prefix))
+    logging.info("Log Key:             {0}".format(app.params.key))
     logging.info("/proc Path:          {0}".format(app.params.procpath))
     logging.info("Report as GB:        {0}".format(not asbytes))
     logging.info("**********************************")
@@ -110,7 +110,7 @@ def stats_logger(app):
             # Default disk path is 'all', which means we need to discover
             # all disk partitions first.
             if disk_paths == 'all':
-                partitions = psutil.disk_partitions(all=False)  # Only physical
+                partitions = psutil.disk_partitions(all=True)
                 for partition in partitions:
                     mounts.append(partition.mountpoint)
             else:
@@ -148,12 +148,15 @@ def stats_logger(app):
                     log_msg['network']['interfaces'][interface] =\
                         dict(tup._asdict())
 
-        # Create logging message, add prefix if provided.
-        report = "{0}".format(log_msg)
-        if app.params.prefix is not None or app.params.prefix != "":
-            report = app.params.prefix + " " + report
+        report = {
+            app.params.key: log_msg
+        }
 
-        logging.info("{0}".format(report.strip()))  # Log usage ...
+        if app.params.use_logging:
+            logging.info("{0}".format(report))  # Log usage ...
+        else:
+            print("{0}".format(report))  # Print usage ...
+
         time.sleep(app.params.frequency)  # Sleep ...
 
 
@@ -213,10 +216,10 @@ stats_logger.add_param(
     default=False
 )
 stats_logger.add_param(
-    "-p",
-    "--prefix",
-    help="Optional prefix to logs.",
-    default="",
+    "-k",
+    "--key",
+    help="Optional key to use for printed dict.",
+    default="host-stats",
     type=str
 )
 stats_logger.add_param(
@@ -228,6 +231,12 @@ stats_logger.add_param(
 stats_logger.add_param(
     "--asbytes",
     help="Report relevant usage in bytes instead of gigabytes.",
+    action="store_true",
+    default=False
+)
+stats_logger.add_param(
+    "--use_logging",
+    help="Report usage using python's logging.",
     action="store_true",
     default=False
 )

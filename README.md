@@ -21,7 +21,7 @@ on what frequency.
 * --diskpaths     : Specific disk paths to report as comma separated list. Defaults to all mounted partitions.
 * -n              : Network Utilization
 * -f              : Reporting frequency in seconds. Default: 5
-* -p              : Optional Prefix to add to reported values
+* -k              : Optional key to use for printed dict. Default: 'host-stats'
 * --procpath      : Path to mounted /proc directory. Defaults to /proc_host
 * --asbytes       : Report usage in bytes. Defaults to reporting in GB (excludes Network).
 * --pernic        : Report network usage per NIC. Defaults to False.
