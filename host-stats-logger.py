@@ -4,6 +4,8 @@ import logging
 import sys
 import psutil
 import time
+import fstab
+
 
 # Set up logging specifically for use in a Docker container such that we
 # log everything to stdout
@@ -110,9 +112,13 @@ def stats_logger(app):
             # Default disk path is 'all', which means we need to discover
             # all disk partitions first.
             if disk_paths == 'all':
-                partitions = psutil.disk_partitions(all=True)
-                for partition in partitions:
-                    mounts.append(partition.mountpoint)
+                special_partitions = ('proc', 'devpts', 'tmpfs', 'sysfs')
+                tab = fstab.Fstab()
+                tab.read(app.params.fstabpath)
+                for partition in tab.lines:
+                    if partition.fstype is not None\
+                            and partition.fstype not in special_partitions:
+                        mounts.append(partition.directory)
             else:
                 paths = disk_paths.split(',')
                 for path in paths:
@@ -226,6 +232,12 @@ stats_logger.add_param(
     "--procpath",
     help="Path to mounted /proc directory. Defaults to /proc_host",
     default="/proc_host",
+    type=str
+)
+stats_logger.add_param(
+    "--fstabpath",
+    help="Path to mounted /etc/fstab file. Defaults to /fstab_host",
+    default="/fstab_host",
     type=str
 )
 stats_logger.add_param(

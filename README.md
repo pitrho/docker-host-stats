@@ -23,6 +23,7 @@ on what frequency.
 * -f              : Reporting frequency in seconds. Default: 5
 * -k              : Optional key to use for printed dict. Default: 'host-stats'
 * --procpath      : Path to mounted /proc directory. Defaults to /proc_host
+* --fstabpath     : Path to mounted /etc/fstab file. Defaults to /fstab_host
 * --asbytes       : Report usage in bytes. Defaults to reporting in GB (excludes Network).
 * --pernic        : Report network usage per NIC. Defaults to False.
 
