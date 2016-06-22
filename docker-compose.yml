@@ -1,0 +1,22 @@
+docker-host-stats:
+  image: pitrho/docker-host-stats
+  tty: true
+  command: -f ${FREQUENCY} ${STATS_TO_REPORT} -k ${KEY} --procpath ${PROCPATH} --diskpaths ${DISKPATHS} ${ADDITIONAL_FLAGS}
+  labels:
+     io.rancher.scheduler.global: "true"
+     io.rancher.scheduler.affinity:host_label_ne: ${HOST_STATS_EXCLUDE_LABEL}
+  volumes:
+    - /proc:${PROCPATH}:ro
+
+cadvisor:
+  image: google/cadvisor:v0.23.2
+  labels:
+    io.rancher.scheduler.global: "true"
+    io.rancher.scheduler.affinity:host_label_ne: ${HOST_STATS_EXCLUDE_LABEL}
+  volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+  ports:
+    - "9090:8080"
