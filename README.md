@@ -44,3 +44,22 @@ Report CPU, Memory, and Disk Utilization with "FooBar " prefix (add a space
 to the end of your prefix for proper formatting.)
 
     docker run -v=/proc:/prochost:ro pitrho/docker-host-stats -cmd -p "FooBar "
+
+## Use with cAdvisor
+
+It is recommended to run this alongside cAdvisor in order to have accurate
+disk usage reporting when more than one mount exists. The provided
+`docker-compose.yml` shows a sample configuration.
+
+This will work in the absense of cAdvisor and fall back to using psutil based
+on the mounted /proc directory of your host. This works except for one known
+case: disk usage for mounted partitions other than /.
+
+Note:
+* We are binding to the host machine on port 9090, not 8080. This is to avoid
+port conflict when using Rancher.
+* Be aware that cAdvisor currently does not have a way to disable the web
+interface. Therefore, ensure you do not have port 9090 (or whatever port you
+decide to bind to the host) accessible publicly unless you really want to.
+    * For example, only expose that port over your private subnet so public
+    traffic is not able to access the interface.
