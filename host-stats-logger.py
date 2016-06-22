@@ -7,6 +7,7 @@ import time
 import requests
 import json
 from pythonjsonlogger import jsonlogger
+import socket
 
 
 # Downgrade logging level of requests library
@@ -93,6 +94,8 @@ def stats_logger(app):
     cadvisor_machine = "{0}/api/{1}/machine"\
                        .format(app.params.cadvisorurl, app.params.cadvisorapi)
 
+    rancher_host_meta = 'http://rancher-metadata/2015-12-19/self/host/{0}'
+
     cadvisor_active = True
     machine_stats = None
     host_stats = None
@@ -105,6 +108,19 @@ def stats_logger(app):
         machine_stats = json.loads(r.content)
     except:
         cadvisor_active = False
+
+    # Get meta details about current host. This is only available when running
+    # using Rancher. In absence of Rancher, default to hostname from python
+    # interpreter.
+    if app.params.hostname == 'auto':
+        try:
+            host = rancher_host_meta.format("hostname")
+            r = requests.get(host)
+            host_name = r.content
+        except:
+            host_name = socket.gethostname()
+    else:
+        host_name = app.params.hostname
 
     logging.info("**********************************")
     logging.info("*** Host Stats Reporter Config ***")
@@ -123,6 +139,7 @@ def stats_logger(app):
     logging.info("cAdvisor Base:       {0}".format(app.params.cadvisorurl))
     logging.info("cAdvisor API:        {0}".format(app.params.cadvisorapi))
     logging.info("cAdvisor Active:     {0}".format(cadvisor_active))
+    logging.info("Host Name:           {0}".format(host_name))
     logging.info("**********************************")
     logging.info("")
 
@@ -130,6 +147,7 @@ def stats_logger(app):
 
     while True:
         log_msg = {}  # Will log as a dict string for downstream parsing.
+        log_msg['hostname'] = host_name
 
         # Retrieve data from cAdvisor. Must re-try each cycle in case cAdvisor
         # goes down (or up). If down, this will attempt to get as much data
@@ -358,6 +376,12 @@ stats_logger.add_param(
     help="Report relevant usage in bytes instead of gigabytes.",
     action="store_true",
     default=False
+)
+stats_logger.add_param(
+    "--hostname",
+    help="Specify a hostname to report. Defaults to using Rancher metadata if available or hostname from python interpreter if not.",
+    default="auto",
+    type=str
 )
 
 

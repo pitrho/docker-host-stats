@@ -33,6 +33,8 @@ on what frequency.
 * --procpath      : Path to mounted /proc directory. Defaults to /proc_host
 * --asbytes       : Report usage in bytes. Defaults to reporting in GB (excludes Network).
 * --pernic        : Report network usage per NIC. Defaults to False.
+* --hostname      : Specify a hostname to report. Defaults to using Rancher
+                    metadata if available or hostname from python interpreter if not.
 
 ## Examples
 
