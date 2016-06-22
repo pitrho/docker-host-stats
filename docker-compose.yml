@@ -1,7 +1,7 @@
 docker-host-stats:
   image: pitrho/docker-host-stats
   tty: true
-  command: -f ${FREQUENCY} ${STATS_TO_REPORT} -k ${KEY} --procpath ${PROCPATH} --diskpaths ${DISKPATHS} ${ADDITIONAL_FLAGS}
+  command: -f 30 -cmdn
   labels:
      io.rancher.scheduler.global: "true"
      io.rancher.scheduler.affinity:host_label_ne: ${HOST_STATS_EXCLUDE_LABEL}
