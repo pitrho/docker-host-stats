@@ -18,7 +18,7 @@ RUN apt-get update && apt-get -y -q install \
     python-pip \
 	&& apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install pyCLI==2.0.3 psutil==4.2.0 fstab==1.4
+RUN pip install pyCLI==2.0.3 psutil==4.2.0 requests==2.10.0 python-json-logger==0.1.5
 
 # Copy logger script
 #

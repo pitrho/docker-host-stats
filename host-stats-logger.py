@@ -4,19 +4,23 @@ import logging
 import sys
 import psutil
 import time
-import fstab
+import requests
+import json
+from pythonjsonlogger import jsonlogger
 
+
+# Downgrade logging level of requests library
+logging.getLogger('requests').setLevel(logging.ERROR)
 
 # Set up logging specifically for use in a Docker container such that we
 # log everything to stdout
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
-ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.DEBUG)
-formatter =\
-    logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-root.addHandler(ch)
+logHandler = logging.StreamHandler(sys.stdout)
+logHandler.setLevel(logging.DEBUG)
+formatter = jsonlogger.JsonFormatter()
+logHandler.setFormatter(formatter)
+root.addHandler(logHandler)
 
 
 def to_gb(num_bytes):
@@ -25,9 +29,82 @@ def to_gb(num_bytes):
     return round(float(num_bytes) / 1000000000, 2)
 
 
+def cadvisor_disk_average(host_stats, device, asbytes):
+    """ Return the total/used/free/percent used for specified device.
+
+        cAdvisor returns 60 seconds worth of data in 1s intervals. Roll this
+        up into an average for each stat.
+    """
+
+    disk_usage = {
+        'total': 0,
+        'percent': 0,
+        'used': 0,
+        'free': 0,
+        'status': 'OK'
+    }
+
+    capacity_total = 0
+    usage_total = 0
+    available_total = 0
+    samples = 0
+    for stat in host_stats['stats']:
+        for mnt in stat['filesystem']:
+            if mnt['device'] == device:
+                capacity_total += mnt['capacity']
+                usage_total += mnt['usage']
+                available_total += mnt['available']
+
+                samples += 1
+
+    if samples > 0:
+        disk_usage['total'] = capacity_total / samples
+        disk_usage['used'] = usage_total / samples
+        disk_usage['free'] = available_total / samples
+
+        # Convert to GB if not asbytes
+        if not asbytes:
+            disk_usage['total'] = to_gb(disk_usage['total'])
+            disk_usage['used'] = to_gb(disk_usage['used'])
+            disk_usage['free'] = to_gb(disk_usage['free'])
+
+        # Calc percent used
+        disk_usage['percent'] = round(
+            float(disk_usage['used']) / float(disk_usage['total']) * 100,
+            2
+        )
+
+    else:
+        disk_usage['status'] = "No samples for provided mount path ..."
+
+    return disk_usage
+
+
 @cli.log.CommandLineApp
 def stats_logger(app):
-    asbytes = app.params.asbytes
+    asbytes = app.params.asbytes  # Report as bytes? Defaults to false, i.e. GB
+
+    # Create API URLs
+    # Stats is for last 1 minute's worth of machine usage stats every second
+    cadvisor_stats = "{0}/api/{1}/containers"\
+                     .format(app.params.cadvisorurl, app.params.cadvisorapi)
+
+    # Machine contains high level host statistics (static)
+    cadvisor_machine = "{0}/api/{1}/machine"\
+                       .format(app.params.cadvisorurl, app.params.cadvisorapi)
+
+    cadvisor_active = True
+    machine_stats = None
+    host_stats = None
+
+    # Run this once when container starts to establish whether cAdvisor
+    # is available at start time (primarily just for more informative logs).
+    # This is re-run every cycle.
+    try:
+        r = requests.get(cadvisor_machine)
+        machine_stats = json.loads(r.content)
+    except:
+        cadvisor_active = False
 
     logging.info("**********************************")
     logging.info("*** Host Stats Reporter Config ***")
@@ -43,6 +120,9 @@ def stats_logger(app):
     logging.info("Log Key:             {0}".format(app.params.key))
     logging.info("/proc Path:          {0}".format(app.params.procpath))
     logging.info("Report as GB:        {0}".format(not asbytes))
+    logging.info("cAdvisor Base:       {0}".format(app.params.cadvisorurl))
+    logging.info("cAdvisor API:        {0}".format(app.params.cadvisorapi))
+    logging.info("cAdvisor Active:     {0}".format(cadvisor_active))
     logging.info("**********************************")
     logging.info("")
 
@@ -50,6 +130,22 @@ def stats_logger(app):
 
     while True:
         log_msg = {}  # Will log as a dict string for downstream parsing.
+
+        # Retrieve data from cAdvisor. Must re-try each cycle in case cAdvisor
+        # goes down (or up). If down, this will attempt to get as much data
+        # as possible using psutil.
+        machine_stats = None
+        host_stats = None
+        try:
+            r = requests.get(cadvisor_machine)
+            machine_stats = json.loads(r.content)
+
+            r = requests.get(cadvisor_stats)
+            host_stats = json.loads(r.content)
+
+            cadvisor_active = True
+        except:
+            cadvisor_active = False
 
         # Add CPU Utilization
         #
@@ -81,8 +177,6 @@ def stats_logger(app):
         # Add Disk Utilization
         #
         if app.params.disk:
-            disk_paths = app.params.diskpaths
-            mounts = []  # Mount points to report upon
 
             def disk_usage_dict(mount):
                 """ Return a dict for reported usage on a particular mount.
@@ -92,16 +186,20 @@ def stats_logger(app):
                 # We are not reporting any platform specific fields, such as
                 # buffers / cahced / shared on Linux/BSD
                 try:
-                    disk = psutil.disk_usage(mount)
+                    if cadvisor_active:
+                        disk_usage =\
+                            cadvisor_disk_average(host_stats, mount, asbytes)
+                    else:
+                        disk = psutil.disk_usage(mount)
 
-                    disk_usage['total'] =\
-                        disk.total if asbytes else to_gb(disk.total)
-                    disk_usage['percent'] = disk.percent
-                    disk_usage['used'] =\
-                        disk.used if asbytes else to_gb(disk.used)
-                    disk_usage['free'] =\
-                        disk.free if asbytes else to_gb(disk.free)
-                    disk_usage['status'] = 'OK'
+                        disk_usage['total'] =\
+                            disk.total if asbytes else to_gb(disk.total)
+                        disk_usage['percent'] = disk.percent
+                        disk_usage['used'] =\
+                            disk.used if asbytes else to_gb(disk.used)
+                        disk_usage['free'] =\
+                            disk.free if asbytes else to_gb(disk.free)
+                        disk_usage['status'] = 'OK'
 
                 except OSError:
                     disk_usage['status'] =\
@@ -109,20 +207,24 @@ def stats_logger(app):
 
                 return disk_usage
 
-            # Default disk path is 'all', which means we need to discover
-            # all disk partitions first.
-            if disk_paths == 'all':
-                special_partitions = ('proc', 'devpts', 'tmpfs', 'sysfs')
-                tab = fstab.Fstab()
-                tab.read(app.params.fstabpath)
-                for partition in tab.lines:
-                    if partition.fstype is not None\
-                            and partition.fstype not in special_partitions:
-                        mounts.append(partition.directory)
-            else:
+            disk_paths = app.params.diskpaths
+            mounts = []  # Mount points to report upon
+
+            # Create list of paths from CLI if user specified paths.
+            if disk_paths != "default":
                 paths = disk_paths.split(',')
                 for path in paths:
                     mounts.append(path.strip())
+
+            # Use cadvisor's list of disks if available
+            elif machine_stats is not None:
+                paths = machine_stats['filesystems']
+                for path in paths:
+                    mounts.append(path['device'])
+
+            # Default to reporting '/'
+            else:
+                mounts.append('/')
 
             log_msg['disk'] = {}
             for mount in mounts:
@@ -154,14 +256,13 @@ def stats_logger(app):
                     log_msg['network']['interfaces'][interface] =\
                         dict(tup._asdict())
 
+        # Create report dict using provided root key.
         report = {
             app.params.key: log_msg
         }
 
-        if app.params.use_logging:
-            logging.info("{0}".format(report))  # Log usage ...
-        else:
-            print("{0}".format(report))  # Print usage ...
+        logging.info("Reporting stats using cAdvisor: {0}"
+                     .format(cadvisor_active), extra=report)  # Log usage ...
 
         time.sleep(app.params.frequency)  # Sleep ...
 
@@ -170,7 +271,7 @@ stats_logger.add_param(
     "-f",
     "--frequency",
     help="Update frequency for stats",
-    default=5,
+    default=60,
     type=int
 )
 stats_logger.add_param(
@@ -204,8 +305,14 @@ stats_logger.add_param(
 )
 stats_logger.add_param(
     "--diskpaths",
-    help="Disk paths to report as comma separated list. Defaults to all mounted partitions",
-    default='all',
+    help="Specific disk paths to report as comma separated list. "
+         "Defaults to listing all disks from cAdvisor. "
+         "If cAdvisor not reachable, defaults to '/'. "
+         "based on results from psutil. "
+         "Note: this results in invalid results for non-root disks depending "
+         "on what is mounted internally to this container. Recommended use "
+         "is to rely on cAdvisor.",
+    default='default',
     type=str
 )
 stats_logger.add_param(
@@ -235,20 +342,20 @@ stats_logger.add_param(
     type=str
 )
 stats_logger.add_param(
-    "--fstabpath",
-    help="Path to mounted /etc/fstab file. Defaults to /fstab_host",
-    default="/fstab_host",
+    "--cadvisorurl",
+    help="Base url for Cadvisor. Defaults to http://cadvisor:8080. Include port.",
+    default="http://cadvisor:8080",
+    type=str
+)
+stats_logger.add_param(
+    "--cadvisorapi",
+    help="API Version to use. Defaults to v1.3.",
+    default="v1.3",
     type=str
 )
 stats_logger.add_param(
     "--asbytes",
     help="Report relevant usage in bytes instead of gigabytes.",
-    action="store_true",
-    default=False
-)
-stats_logger.add_param(
-    "--use_logging",
-    help="Report usage using python's logging.",
     action="store_true",
     default=False
 )

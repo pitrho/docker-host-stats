@@ -18,12 +18,19 @@ on what frequency.
 * --combinedcpu   : Report CPU as an average across cores instead of per-CPU basis.
 * -m              : Memory Utilization
 * -d              : Disk Utilization
-* --diskpaths     : Specific disk paths to report as comma separated list. Defaults to all mounted partitions.
+* --diskpaths     : Specific disk paths to report as comma separated list.
+                    Defaults to listing all disks from cAdvisor.
+                    If cAdvisor is not reachable, defaults to reporting '/'
+                    based on results from psutil.
+                    Note: this results in invalid results for non-root disks
+                    when this is run inside a docker container. Recommended use
+                    is to rely on cAdvisor in this case.
 * -n              : Network Utilization
-* -f              : Reporting frequency in seconds. Default: 5
+* -f              : Reporting frequency in seconds. Default: 60 seconds
 * -k              : Optional key to use for printed dict. Default: 'host-stats'
+* --cadvisorurl   : Base url for Cadvisor. Defaults to http://cadvisor:8080. Include port.
+* --cadvisorapi   : API Version to use. Defaults to v1.3.
 * --procpath      : Path to mounted /proc directory. Defaults to /proc_host
-* --fstabpath     : Path to mounted /etc/fstab file. Defaults to /fstab_host
 * --asbytes       : Report usage in bytes. Defaults to reporting in GB (excludes Network).
 * --pernic        : Report network usage per NIC. Defaults to False.
 
