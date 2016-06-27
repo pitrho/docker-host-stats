@@ -125,6 +125,7 @@ def stats_logger(app):
     logging.info("**********************************")
     logging.info("*** Host Stats Reporter Config ***")
     logging.info("**********************************")
+    logging.info("Version:             0.4.0")
     logging.info("Reporting Interval:  {0}s".format(app.params.frequency))
     logging.info("Report CPU:          {0}".format(app.params.cpu))
     logging.info("Report Per CPU:      {0}".format(not app.params.combinedcpu))
