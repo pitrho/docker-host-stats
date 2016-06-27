@@ -28,7 +28,7 @@ on what frequency.
 * -n              : Network Utilization
 * -f              : Reporting frequency in seconds. Default: 60 seconds
 * -k              : Optional key to use for printed dict. Default: 'host-stats'
-* --cadvisorurl   : Base url for Cadvisor. Defaults to http://cadvisor:8080. Include port.
+* --cadvisorurl   : Base url for Cadvisor. Defaults to http://localhost:8080. Include port.
 * --cadvisorapi   : API Version to use. Defaults to v1.3.
 * --procpath      : Path to mounted /proc directory. Defaults to /proc_host
 * --asbytes       : Report usage in bytes. Defaults to reporting in GB (excludes Network).

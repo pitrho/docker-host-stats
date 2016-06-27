@@ -2,9 +2,9 @@ docker-host-stats:
   image: pitrho/docker-host-stats
   tty: true
   command: -f 30 -cmdn
-  labels:
-     io.rancher.scheduler.global: "true"
-     io.rancher.scheduler.affinity:host_label_ne: ${HOST_STATS_EXCLUDE_LABEL}
+  links:
+    - "cadvisor:cadvisor"
+  net: "container:cadvisor"
   volumes:
     - /proc:${PROCPATH}:ro
 
@@ -13,6 +13,7 @@ cadvisor:
   labels:
     io.rancher.scheduler.global: "true"
     io.rancher.scheduler.affinity:host_label_ne: ${HOST_STATS_EXCLUDE_LABEL}
+    io.rancher.sidekicks: docker-host-stats
   volumes:
     - /:/rootfs:ro
     - /var/run:/var/run:rw

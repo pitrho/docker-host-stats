@@ -24,14 +24,7 @@ RUN pip install pyCLI==2.0.3 psutil==4.2.0 requests==2.10.0 python-json-logger==
 #
 COPY host-stats-logger.py /host-stats-logger.py
 
-# Set up GO environment
-#RUN curl -O https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz
-#RUN tar -xvf go1.6.linux-amd64.tar.gz
-#RUN mv go /usr/local
-
-#go get -d github.com/google/cadvisor && cd $GOPATH/github.com/google/cadvisor && make build && sudo ./cadvisor --logtostderr -->
-
 # Default to reporting every 30 seconds
 #
-ENTRYPOINT ["python", "/host-stats-logger.py"]
+ENTRYPOINT ["python", "-u", "/host-stats-logger.py"]
 CMD ["-f", "30", "-cmdn"]

@@ -361,8 +361,8 @@ stats_logger.add_param(
 )
 stats_logger.add_param(
     "--cadvisorurl",
-    help="Base url for Cadvisor. Defaults to http://cadvisor:8080. Include port.",
-    default="http://cadvisor:8080",
+    help="Base url for Cadvisor. Defaults to http://localhost:8080. Include port.",
+    default="http://localhost:8080",
     type=str
 )
 stats_logger.add_param(
