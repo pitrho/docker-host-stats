@@ -125,10 +125,9 @@ def stats_logger(app):
     logging.info("**********************************")
     logging.info("*** Host Stats Reporter Config ***")
     logging.info("**********************************")
-    logging.info("Version:             0.5.0")
+    logging.info("Version:             0.6.0")
     logging.info("Reporting Interval:  {0}s".format(app.params.frequency))
     logging.info("Report CPU:          {0}".format(app.params.cpu))
-    logging.info("Report Per CPU:      {0}".format(not app.params.combinedcpu))
     logging.info("Report Memory:       {0}".format(app.params.memory))
     logging.info("Report Disk:         {0}".format(app.params.disk))
     logging.info("Reporting disk path: {0}".format(app.params.diskpaths))
@@ -141,6 +140,7 @@ def stats_logger(app):
     logging.info("cAdvisor API:        {0}".format(app.params.cadvisorapi))
     logging.info("cAdvisor Active:     {0}".format(cadvisor_active))
     logging.info("Host Name:           {0}".format(host_name))
+    logging.info("Dot-Friendly:        {0}".format(app.params.dotfriendly))
     logging.info("**********************************")
     logging.info("")
 
@@ -169,11 +169,11 @@ def stats_logger(app):
         # Add CPU Utilization
         #
         if app.params.cpu:
-            cpu_pct = psutil.cpu_percent(percpu=(not app.params.combinedcpu))
-            if app.params.combinedcpu:
-                cpu_pct = [cpu_pct]  # Return as list to remain consistent.
+            cpu_per_cpu = psutil.cpu_percent(percpu=True)
+            cpu_combined = psutil.cpu_percent(percpu=False)
             log_msg['cpu'] = {
-                'utilization_pct': cpu_pct,
+                'percent_per_cpu': cpu_per_cpu,
+                'percent_combined': cpu_combined,
                 'status': 'OK'
             }
 
@@ -302,13 +302,6 @@ stats_logger.add_param(
     "--cpu",
     required=False,
     help="Report CPU Utilization",
-    action="store_true",
-    default=False
-)
-stats_logger.add_param(
-    "--combinedcpu",
-    required=False,
-    help="Report CPU as an average across cores instead of per-CPU basis.",
     action="store_true",
     default=False
 )
