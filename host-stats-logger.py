@@ -125,7 +125,7 @@ def stats_logger(app):
     logging.info("**********************************")
     logging.info("*** Host Stats Reporter Config ***")
     logging.info("**********************************")
-    logging.info("Version:             0.4.0")
+    logging.info("Version:             0.5.0")
     logging.info("Reporting Interval:  {0}s".format(app.params.frequency))
     logging.info("Report CPU:          {0}".format(app.params.cpu))
     logging.info("Report Per CPU:      {0}".format(not app.params.combinedcpu))
@@ -247,7 +247,11 @@ def stats_logger(app):
 
             log_msg['disk'] = {}
             for mount in mounts:
-                log_msg['disk'][mount] = disk_usage_dict(mount)
+                mount_key = mount
+                if app.params.dotfriendly:
+                    # Replace '/' and '-' with '_' in mount name to use in key
+                    mount_key = mount.replace('/', '_').replace('-', '_')
+                log_msg['disk'][mount_key] = disk_usage_dict(mount)
 
         # Add Network Utilization
         #
@@ -384,7 +388,12 @@ stats_logger.add_param(
     default="auto",
     type=str
 )
-
+stats_logger.add_param(
+    "--dotfriendly",
+    help="Replace keys in the logged usage dict that are not dot-notation compatible. Currently that only means replacing `/` with `_` in the disk mount keys. Defaults to False.",
+    action="store_true",
+    default=False
+)
 
 if __name__ == "__main__":
     stats_logger.run()

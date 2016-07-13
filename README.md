@@ -35,6 +35,9 @@ on what frequency.
 * --pernic        : Report network usage per NIC. Defaults to False.
 * --hostname      : Specify a hostname to report. Defaults to using Rancher
                     metadata if available or hostname from python interpreter if not.
+* --dotfriendly   : Replace keys in the logged usage dict that are not dot-notation
+                    compatible. Currently that only means replacing `/` with `_`
+                    in the disk mount keys. Defaults to False.
 
 ## Examples
 
